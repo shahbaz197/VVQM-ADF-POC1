@@ -1,0 +1,26 @@
+{
+	"name": "DS_ADLS_BPR_ALL_FILES",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_VVQM",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BPR"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "Batch Production Record/Raw/sftp_bpr_raw",
+				"fileSystem": "mq-veevaqualitymanagement"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

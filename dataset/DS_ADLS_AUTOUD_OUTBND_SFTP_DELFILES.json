@@ -1,0 +1,31 @@
+{
+	"name": "DS_ADLS_AUTOUD_OUTBND_SFTP_DELFILES",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_VVQM",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"filename": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "AUTOUD"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().filename",
+					"type": "Expression"
+				},
+				"folderPath": "Auto-UD Outbound/Curated/autoud_outbnd_sftp",
+				"fileSystem": "mq-veevaqualitymanagement"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

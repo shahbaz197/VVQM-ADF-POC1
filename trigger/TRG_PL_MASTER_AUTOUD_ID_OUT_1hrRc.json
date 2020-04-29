@@ -1,0 +1,28 @@
+{
+	"name": "TRG_PL_MASTER_AUTOUD_ID_OUT_1hrRc",
+	"properties": {
+		"description": "PL_MASTER_AUTOUD_ID_OUT_RAW2WEB_RUN Every 1 hour",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_MASTER_AUTOUD_ID_OUT_RAW2WEB_RUN",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"var_email_address": "sneh.gaur@elanco.com"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2020-03-22T15:02:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,302 @@
+{
+	"name": "PL_BRP_WEB",
+	"properties": {
+		"description": "BRP_WEB_APP_LOOKUP",
+		"activities": [
+			{
+				"name": "Lookup_Cleansed_Metadata",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Bpr_Raw2Stage",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "OrcSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFileName": "*.orc"
+						}
+					},
+					"dataset": {
+						"referenceName": "DS_ADLS_BPR_API_WATERMARK",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Bpr_Raw2Stage",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/MQ - Veeva Quality Management (VVQM)/Batch Production Record/Raw_Stage_Codes/raw2stage_load"
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_ADB_VVQM",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Web_Notebook_Failure_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Bpr_Raw2Stage",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-06.eastus.logic.azure.com:443/workflows/20b2d83527654311b8ff6ebb659a9563/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=I6ZUHfsOjhzZY1J0Umk8UAKuoboQfKoEQ-LBIRyJqAg",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.var_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"BPR Notebook Login Failed\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Lookup_Metadata",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Bpr_Raw2Stage",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT CONVERT(varchar, last_loaded_txn,20) as val_last_loaded_txn\nFROM [VVQM].[Delta_API_Call]\nwhere [source_name] = 'bpr' ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00"
+					},
+					"dataset": {
+						"referenceName": "DS_SQL_BPR_GETFILES",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_Cleansed_Data_source",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Cleansed_Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_Cleansed_Metadata').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 50,
+					"activities": [
+						{
+							"name": "Set Inc Time",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "inc_load_time",
+								"value": {
+									"value": "@{concat(substring(item().load_txn_tm,0,10),' ',substring(item().load_txn_tm,11,8))}",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ForEach_Cleansed_Data_Metadata",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_Metadata').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 50,
+					"activities": [
+						{
+							"name": "Set Metadata Time",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "metadata_load_time",
+								"value": {
+									"value": "@item().val_last_loaded_txn",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Condition_autoud_Inbnd_WebApp_Lookup",
+				"description": "IF condition is ok, this will call PL_AUTOUD_INBND_WEB_APP_LOOKUP",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach_Cleansed_Data_Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "ForEach_Cleansed_Data_source",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('inc_load_time'),variables('metadata_load_time'))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set Final_ValuesNotMatching",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "final_set",
+								"value": "0"
+							}
+						},
+						{
+							"name": "Execute_PL_BPR_WEB_APP_LOOKUP",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Set Final_ValuesNotMatching",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_BRP_WEB_LOOKUP",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"var_email_address": {
+										"value": "@pipeline().parameters.var_email_address",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Set Final_ValuesMatching",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "final_set",
+								"value": "1"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"var_email_address": {
+				"type": "string",
+				"defaultValue": "sneh.gaur@elanco.com"
+			}
+		},
+		"variables": {
+			"metadata_load_time": {
+				"type": "String"
+			},
+			"inc_load_time": {
+				"type": "String"
+			},
+			"final_set": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "BPR"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

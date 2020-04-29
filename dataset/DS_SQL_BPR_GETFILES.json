@@ -1,0 +1,16 @@
+{
+	"name": "DS_SQL_BPR_GETFILES",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQL_VVQM",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BPR"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

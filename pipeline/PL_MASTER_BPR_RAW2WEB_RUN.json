@@ -1,0 +1,65 @@
+{
+	"name": "PL_MASTER_BPR_RAW2WEB_RUN",
+	"properties": {
+		"activities": [
+			{
+				"name": "EXE_PL_BPR_SRC_DATA_PULL",
+				"description": "Execute Pipeline to Extract the Data from SFTP to RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_BPR_SRC_DATA_PULL",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"var_email_address": {
+							"value": "@pipeline().parameters.var_email_address",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "EXE_PL_BRP_WEB_APP_LOOKUP",
+				"description": "Execute Pipeline to Extract the Data from Raw to Post to API",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "EXE_PL_BPR_SRC_DATA_PULL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_BRP_WEB",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"var_email_address": {
+							"value": "@pipeline().parameters.var_email_address",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"var_email_address": {
+				"type": "string",
+				"defaultValue": "sneh.gaur@elanco.com"
+			}
+		},
+		"folder": {
+			"name": "BPR"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

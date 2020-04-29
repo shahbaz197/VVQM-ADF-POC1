@@ -1,0 +1,38 @@
+{
+	"name": "TRG_PL_MASTER_BPR_061218",
+	"properties": {
+		"description": "PL_MASTER_BPR_RAW2WEB_RUN Run 6am, 12pm, 18pm",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_MASTER_BPR_RAW2WEB_RUN",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"var_email_address": "sneh.gaur@elanco.com"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2020-03-22T14:58:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						6,
+						12,
+						18
+					]
+				}
+			}
+		}
+	}
+}

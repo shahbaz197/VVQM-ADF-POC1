@@ -1,0 +1,23 @@
+{
+	"name": "LS_SFTP_AUTOUD_LILLY_CONN",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "Sftp",
+		"typeProperties": {
+			"host": "sfttest.lilly.com",
+			"port": 22,
+			"skipHostKeyValidation": true,
+			"authenticationType": "Basic",
+			"userName": "xfer0077",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_KV_VVQM",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "SFTP-AUTOUD-PSWD"
+			}
+		}
+	}
+}

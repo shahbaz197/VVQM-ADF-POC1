@@ -1,0 +1,24 @@
+{
+	"name": "LS_SFTP_BPR_LILLY_CONN",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "Connecting Lilly Sftp to extract Bpr files",
+		"annotations": [],
+		"type": "Sftp",
+		"typeProperties": {
+			"host": "sfttest.lilly.com",
+			"port": 22,
+			"skipHostKeyValidation": true,
+			"authenticationType": "Basic",
+			"userName": "xfer0112",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_KV_VVQM",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "SFTP-BPR-PSWD"
+			}
+		}
+	}
+}

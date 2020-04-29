@@ -1,0 +1,317 @@
+{
+	"name": "PL_AUTOUD_INBND_EXECUTE_DATALOAD",
+	"properties": {
+		"description": "PL_AUTOUD_INBND_EXECUTE_DATALOAD....",
+		"activities": [
+			{
+				"name": "insert_inprogress_status",
+				"description": "insert_inprogress_status",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "plant_code",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[VVQM].[usp_update_inprogress]",
+					"storedProcedureParameters": {
+						"file_name": {
+							"value": {
+								"value": "@pipeline().parameters.File_Name",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"fileinserted": {
+							"value": {
+								"value": "@pipeline().parameters.File_inserted",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"pipelinename": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"pipelinerunid": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_VVQM",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "bprmeterials_dataframe",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "insert_inprogress_status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/MQ - Veeva Quality Management (VVQM)/Auto-UD Inbound/Raw_Stage_Codes/raw_load",
+					"baseParameters": {
+						"valsource_filename": {
+							"value": "@pipeline().parameters.File_Name",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_ADB_VVQM",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "plant_code",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "plantcode",
+					"value": {
+						"value": "@pipeline().parameters.plant_code",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "update_success",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "bprmeterials_dataframe",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[VVQM].[usp_update_success]",
+					"storedProcedureParameters": {
+						"file_name": {
+							"value": {
+								"value": "@pipeline().parameters.File_Name",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"fileinserted": {
+							"value": {
+								"value": "@pipeline().parameters.File_inserted",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"pipelinename": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"pipelinerunid": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_VVQM",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "update_failure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "bprmeterials_dataframe",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[VVQM].[usp_update_error]",
+					"storedProcedureParameters": {
+						"file_name": {
+							"value": {
+								"value": "@pipeline().parameters.File_Name",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"pipelinename": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"pipelinerunid": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_VVQM",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Deleteprocessedfilesfromsftp",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "bprmeterials_dataframe",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_SFTP_AUTOUD_INBND_FILE_SRC",
+						"type": "DatasetReference",
+						"parameters": {
+							"filename": "@pipeline().parameters.File_Name"
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "SftpReadSettings",
+						"recursive": true
+					}
+				}
+			},
+			{
+				"name": "Web_Failure_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "bprmeterials_dataframe",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "insert_inprogress_status",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-06.eastus.logic.azure.com:443/workflows/20b2d83527654311b8ff6ebb659a9563/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=I6ZUHfsOjhzZY1J0Umk8UAKuoboQfKoEQ-LBIRyJqAg",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.var_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"Error while executing STORED PROCEDURE activity or NOTEBOOK activity\"\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"File_Name": {
+				"type": "string"
+			},
+			"Plant_code": {
+				"type": "string"
+			},
+			"File_inserted": {
+				"type": "string"
+			},
+			"var_email_address": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"plantcode": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "AUTOUD"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

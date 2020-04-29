@@ -1,0 +1,66 @@
+{
+	"name": "PL_MASTER_AUTOUD_ID_OUT_RAW2WEB_RUN",
+	"properties": {
+		"description": "PL_MASTER_AUTOUD_ID_OUT_RAW2WEB_RUN",
+		"activities": [
+			{
+				"name": "EXE_PL_AUTOUD_INBND_SRC_DATA_PULL",
+				"description": "Execute Pipeline to Extract the Data from SFTP to RAW",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_AUTOUD_INBND_SRC_DATA_PULL",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"var_email_address": {
+							"value": "@pipeline().parameters.var_email_address",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "EXE_PL_AUTOUD_INBND_OUTBND",
+				"description": "Execute Pipeline to Extract the Data from Raw to Post to API & Also Deviation Using Out Bound Pipeline",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "EXE_PL_AUTOUD_INBND_SRC_DATA_PULL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_AUTOUD_INBND_WEB",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"var_email_address": {
+							"value": "@pipeline().parameters.var_email_address",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"var_email_address": {
+				"type": "string",
+				"defaultValue": "sneh.gaur@elanco.com"
+			}
+		},
+		"folder": {
+			"name": "AUTOUD"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

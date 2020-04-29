@@ -1,0 +1,29 @@
+{
+	"name": "DS_ADLS_AUTOUD_INBND_SESSION_DETAILS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_VVQM",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "AUTOUD"
+		},
+		"annotations": [],
+		"type": "Avro",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat('autoud_inbnd_session_details_',formatDateTime(adddays(utcnow(),0),'yyyy'),'-',formatDateTime(adddays(utcnow(),0),'MM'),'-', formatDateTime(adddays(utcnow(),0),'dd'), '_' ,formatDateTime(adddays(utcnow(),0),'hh'), formatDateTime(adddays(utcnow(),0),'mm'), formatDateTime(adddays(utcnow(),0),'ss'),'.avro')",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@concat('Auto-UD Inbound/Control_Metadata/autoud_inbnd_session_details/','datepart=',formatDateTime(adddays(utcnow(),0),'yyyy'),'-',formatDateTime(adddays(utcnow(),0),'MM'),'-', formatDateTime(adddays(utcnow(),0),'dd'))\n",
+					"type": "Expression"
+				},
+				"fileSystem": "mq-veevaqualitymanagement"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

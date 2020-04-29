@@ -1,0 +1,21 @@
+{
+	"name": "DS_SFTP_BPR_LILLY_CONN",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SFTP_BPR_LILLY_CONN",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BPR"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "SftpLocation",
+				"folderPath": "/pickup"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

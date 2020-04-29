@@ -1,0 +1,525 @@
+{
+	"name": "PL_BRP_WEB_LOOKUP",
+	"properties": {
+		"description": "BRP_WEB_APP_LOOKUP",
+		"activities": [
+			{
+				"name": "Lookup_Cleansed_Data",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Stored Procedure Del",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "OrcSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFileName": "*.orc"
+						}
+					},
+					"dataset": {
+						"referenceName": "DS_ADLS_BPR_SRC_INC",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_Cleansed_Data",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Cleansed_Data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Url",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Password",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set UserName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_Cleansed_Data').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 50,
+					"activities": [
+						{
+							"name": "Execute_veeva_bpr_web_app",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_BRP_WEB_APP",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"url": {
+										"value": "@variables('url')",
+										"type": "Expression"
+									},
+									"password": {
+										"value": "@variables('password')",
+										"type": "Expression"
+									},
+									"username": {
+										"value": "@variables('username')",
+										"type": "Expression"
+									},
+									"val_plant_code": {
+										"value": "@item().plant_code",
+										"type": "Expression"
+									},
+									"val_name": {
+										"value": "@item().val_name",
+										"type": "Expression"
+									},
+									"val_batch_number__c": {
+										"value": "@item().batch_id",
+										"type": "Expression"
+									},
+									"val_material_id__c": {
+										"value": "@item().material_id",
+										"type": "Expression"
+									},
+									"val_process_order_number__c": {
+										"value": "@item().order_number",
+										"type": "Expression"
+									},
+									"val_production_version__c": {
+										"value": "@item().production_version",
+										"type": "Expression"
+									},
+									"var_email_address": {
+										"value": "@pipeline().parameters.var_email_address",
+										"type": "Expression"
+									},
+									"val_filename": {
+										"value": "@item().source_filename",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Set load_txn_tm",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Execute_veeva_bpr_web_app",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_last_loaded_txn",
+								"value": {
+									"value": "@item().load_txn_tm",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Copy_Bpr_Session_Details",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ForEach_Cleansed_Data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT [source_name]\n\t\t, [url]\n      ,[sessionId]\n      ,[vaultId]\n      ,[name]\n      ,[plant_code]\n      ,[organization__c]\n      ,[package_class__c]\n      ,[batch_number__c]\n      ,[material_id__c]\n      ,[process_order_number__c]\n      ,[production_version__c]\n      ,[response_status]\n      ,[data_response_status]\n      ,[data_response_desc]\n\t  ,source_filename\n      ,[pipeline_runid]\n      ,[pipeline_name]\n      ,[load_txn_tm]\n  FROM [VVQM].[Bpr_Session_Details];",
+						"queryTimeout": "02:00:00"
+					},
+					"sink": {
+						"type": "AvroSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "AvroWriteSettings",
+							"quoteAllText": true
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_SQL_BPR_GETFILES",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_ADLS_BPR_SESSION_DETAILS",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Web_ForEach_Cleansed_Data_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "ForEach_Cleansed_Data",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-06.eastus.logic.azure.com:443/workflows/20b2d83527654311b8ff6ebb659a9563/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=I6ZUHfsOjhzZY1J0Umk8UAKuoboQfKoEQ-LBIRyJqAg",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.var_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"BPR ForEach_Cleansed_Data Failed\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Web_Session_Transfer_Failure_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Copy_Bpr_Session_Details",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-06.eastus.logic.azure.com:443/workflows/20b2d83527654311b8ff6ebb659a9563/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=I6ZUHfsOjhzZY1J0Umk8UAKuoboQfKoEQ-LBIRyJqAg",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.var_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"BPR Session Details Transfer Failed\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Stored Procedure Del",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[VVQM].[delete_session_details_proc]",
+					"storedProcedureParameters": {
+						"source_name": {
+							"value": "bpr",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_VVQM",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Stored Procedure Delta_BPR_API",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "ForEach_Cleansed_Data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[VVQM].[delta_API_call_proc]",
+					"storedProcedureParameters": {
+						"last_loaded_txn": {
+							"value": {
+								"value": "@variables('val_last_loaded_txn')",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"pipeline_load_txn_tm": {
+							"value": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"pipeline_name": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"pipeline_runid": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"source_name": {
+							"value": "bpr",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_VVQM",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Web Url",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://bqaze1ivvqmkv01.vault.azure.net/secrets/VVQM-BPR-URL/?api-version=7.0",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Set UserName",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web UserName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "username",
+					"value": {
+						"value": "@activity('Web UserName').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set Password",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web Password",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "password",
+					"value": {
+						"value": "@activity('Web Password').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set Url",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web Url",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "url",
+					"value": {
+						"value": "@activity('Web Url').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Web Password",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://bqaze1ivvqmkv01.vault.azure.net/secrets/VVQM-BPR-PASSWORD/?api-version=7.0",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Web UserName",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://bqaze1ivvqmkv01.vault.azure.net/secrets/VVQM-BPR-USER/?api-version=7.0",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"var_email_address": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"username": {
+				"type": "String"
+			},
+			"password": {
+				"type": "String"
+			},
+			"url": {
+				"type": "String"
+			},
+			"val_last_loaded_txn": {
+				"type": "String",
+				"defaultValue": "1900-01-01T00:00:00Z"
+			}
+		},
+		"folder": {
+			"name": "BPR"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

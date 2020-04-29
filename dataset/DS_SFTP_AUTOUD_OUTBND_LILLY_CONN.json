@@ -1,0 +1,21 @@
+{
+	"name": "DS_SFTP_AUTOUD_OUTBND_LILLY_CONN",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SFTP_AUTOUD_LILLY_CONN",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "AUTOUD"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "SftpLocation",
+				"folderPath": "/drop"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

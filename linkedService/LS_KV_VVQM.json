@@ -1,0 +1,12 @@
+{
+	"name": "LS_KV_VVQM",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "BDAZE1IVVQMKV01 Key Vault",
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://bqaze1ivvqmkv01.vault.azure.net/"
+		}
+	}
+}

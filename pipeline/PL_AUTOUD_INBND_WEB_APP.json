@@ -1,0 +1,1077 @@
+{
+	"name": "PL_AUTOUD_INBND_WEB_APP",
+	"properties": {
+		"description": "PL_AUTOUD_INBND_WEB_APP..",
+		"activities": [
+			{
+				"name": "Web_organization__c",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.url}/api/v19.3/query?q=select id from qms_organization__qdm where orgid__c='@{pipeline().parameters.val_plant_code}'",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "@pipeline().parameters.val_sessionId",
+							"type": "Expression"
+						},
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"body": {
+						"username": "@{pipeline().parameters.username}",
+						"password=": "@{pipeline().parameters.password}"
+					}
+				}
+			},
+			{
+				"name": "ForEach_api_name__v",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Web_api_name__v",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Web_api_name__v').output.data",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set_api_name__v",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "temp_api_name__v",
+								"value": {
+									"value": "@item().id",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ForEach_organization__c",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Web_organization__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Web_organization__c').output.data",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set_organization__c",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "temp_val_organization__c",
+								"value": {
+									"value": "@item().id",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Web_final_post",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "IfCondition_api_name__v",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "IfCondition_organization__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "IfCondition_batch__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.url}/api/v19.3/query?q=select id, initial_criticality__c, state__v, name__v, final_criticality__c, (select batch__cr.name__v from batch_quality_event__cr) from quality_event__qdm where owning_facility__c = '@{variables('val_organization__c')}' and object_type__v = '@{variables('val_api_name__v')}' and id in(select quality_event__c from batch_quality_event__cr where batch__c contains ('@{variables('batch__c')}'))",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "@pipeline().parameters.val_sessionId",
+							"type": "Expression"
+						},
+						"Content-Type": "application/json"
+					}
+				}
+			},
+			{
+				"name": "IfCondition_api_name__v",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach_api_name__v",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('temp_api_name__v'),'')\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set_api_name__v_False",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_api_name__v",
+								"value": {
+									"value": "@variables('temp_api_name__v')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Set_api_name__v_True",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_api_name__v",
+								"value": {
+									"value": "@coalesce(null, null, null)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set_ResponseStatus",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web_final_post",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "val_responseStatus",
+					"value": {
+						"value": "@activity('Web_final_post').output.responseStatus",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "IfCondition_organization__c",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach_organization__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('temp_val_organization__c'),'')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set_val_organization__c_false",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_organization__c",
+								"value": {
+									"value": "@variables('temp_val_organization__c')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Set_val_organization__c_true",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_organization__c",
+								"value": {
+									"value": "@coalesce(null, null, null)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Web_api_name__v",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.url}/api/v19.3/query?q=select id from object_type__v where api_name__v = 'deviation__qdm'",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "@pipeline().parameters.val_sessionId",
+							"type": "Expression"
+						},
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"body": {
+						"username": "@{pipeline().parameters.username}",
+						"password=": "@{pipeline().parameters.password}"
+					}
+				}
+			},
+			{
+				"name": "ForEach_Gets",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Set_ResponseStatus",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Web_final_post').output.data",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Set id",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "id",
+								"value": {
+									"value": "@item().id",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set state__v",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "state__v",
+								"value": {
+									"value": "@item().state__v",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set name__v",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "name__v",
+								"value": {
+									"value": "@item().name__v",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set final_criticality__c",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "final_criticality__c",
+								"value": {
+									"value": "@string(item().final_criticality__c)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Stored Procedure Final",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Set name__v",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set state__v",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set final_criticality__c",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set id",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set initial_criticality__c",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set temp value",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set batch_quality_event__cr",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[VVQM].[autoud_inbnd_session_details_proc]",
+								"storedProcedureParameters": {
+									"api_name__v": {
+										"value": {
+											"value": "@variables('val_api_name__v')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"final_criticality__c": {
+										"value": {
+											"value": "@variables('final_criticality__c')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"id": {
+										"value": {
+											"value": "@variables('id')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"load_txn_tm": {
+										"value": {
+											"value": "@pipeline().TriggerTime",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"name__v": {
+										"value": {
+											"value": "@variables('name__v')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"organization__c": {
+										"value": {
+											"value": "@variables('val_organization__c')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"pipeline_name": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"pipeline_runid": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"plant_code": {
+										"value": {
+											"value": "@pipeline().parameters.val_plant_code",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"response_status": {
+										"value": {
+											"value": "@variables('val_responseStatus')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"sessionId": {
+										"value": {
+											"value": "@pipeline().parameters.val_sessionId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"source_name": {
+										"value": "autoud_inbnd",
+										"type": "String"
+									},
+									"state__v": {
+										"value": {
+											"value": "@variables('state__v')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"url": {
+										"value": {
+											"value": "@pipeline().parameters.url",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"material_number": {
+										"value": {
+											"value": "@pipeline().parameters.val_material",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"batch": {
+										"value": {
+											"value": "@pipeline().parameters.val_batch",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"initial_criticality__c": {
+										"value": {
+											"value": "@variables('initial_criticality__c')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"source_filename": {
+										"value": {
+											"value": "@pipeline().parameters.val_source_filename",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"batch_quality_event__cr": {
+										"value": {
+											"value": "@variables('batch_quality_event__cr')",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_SQL_VVQM",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Set initial_criticality__c",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "initial_criticality__c",
+								"value": {
+									"value": "@string(item().initial_criticality__c)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set temp value",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_temp",
+								"value": "1"
+							}
+						},
+						{
+							"name": "Web_SP_Final_Failure_Notification",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Stored Procedure Final",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "https://prod-87.eastus.logic.azure.com:443/workflows/b5ceb1071908488fa27b7b7470c9e405/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=BWFiK2D6vtS0Z0LofAoo8vUnUKt3sAmcOQ47M0l1Djw",
+									"type": "Expression"
+								},
+								"method": "POST",
+								"headers": {
+									"Content-Type": "application/json"
+								},
+								"body": {
+									"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.val_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"Final Stored Procedure Failed for @{pipeline().parameters.username}\"\n}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set batch_quality_event__cr",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "batch_quality_event__cr",
+								"value": {
+									"value": "@string(item().batch_quality_event__cr)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Condition ResponseCheck",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach_Gets",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('val_temp'),'0')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set temp val",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_temp",
+								"value": "1"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Stored Procedure Final_True",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[VVQM].[autoud_inbnd_session_details_proc]",
+								"storedProcedureParameters": {
+									"api_name__v": {
+										"value": {
+											"value": "@variables('val_api_name__v')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"final_criticality__c": {
+										"value": "",
+										"type": "String"
+									},
+									"id": {
+										"value": "",
+										"type": "String"
+									},
+									"load_txn_tm": {
+										"value": {
+											"value": "@pipeline().TriggerTime",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"name__v": {
+										"value": "",
+										"type": "String"
+									},
+									"organization__c": {
+										"value": {
+											"value": "@variables('val_organization__c')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"pipeline_name": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"pipeline_runid": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"plant_code": {
+										"value": {
+											"value": "@pipeline().parameters.val_plant_code",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"response_status": {
+										"value": {
+											"value": "@variables('val_responseStatus')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"sessionId": {
+										"value": {
+											"value": "@pipeline().parameters.val_sessionId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"source_name": {
+										"value": "autoud_inbnd",
+										"type": "String"
+									},
+									"state__v": {
+										"value": "",
+										"type": "String"
+									},
+									"url": {
+										"value": {
+											"value": "@pipeline().parameters.url",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"material_number": {
+										"value": {
+											"value": "@pipeline().parameters.val_material",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"batch": {
+										"value": {
+											"value": "@pipeline().parameters.val_batch",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"initial_criticality__c": {
+										"value": "",
+										"type": "String"
+									},
+									"source_filename": {
+										"value": {
+											"value": "@pipeline().parameters.val_source_filename",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"batch_quality_event__cr": {
+										"value": "",
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_SQL_VVQM",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Web_Final_Failure_Login_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Web_final_post",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-87.eastus.logic.azure.com:443/workflows/b5ceb1071908488fa27b7b7470c9e405/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=BWFiK2D6vtS0Z0LofAoo8vUnUKt3sAmcOQ47M0l1Djw",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.val_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"Final Post Failed for @{pipeline().parameters.username}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Web_ResponseCheck_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "If Condition ResponseCheck",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-87.eastus.logic.azure.com:443/workflows/b5ceb1071908488fa27b7b7470c9e405/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=BWFiK2D6vtS0Z0LofAoo8vUnUKt3sAmcOQ47M0l1Djw",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.val_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"Response Check Failed in @{pipeline().parameters.username}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Web_batch__c",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.url}/api/v19.3/query?q=select id from batch__c where name__v='@{pipeline().parameters.val_batch}'",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "@pipeline().parameters.val_sessionId",
+							"type": "Expression"
+						},
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"body": {
+						"username": "@{pipeline().parameters.username}",
+						"password=": "@{pipeline().parameters.password}"
+					}
+				}
+			},
+			{
+				"name": "ForEach_batch__c",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Web_batch__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Web_batch__c').output.data",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set_batch__c",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "temp_batch__c",
+								"value": {
+									"value": "@item().id",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "IfCondition_batch__c",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach_batch__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('temp_batch__c'),'')\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set_batch__c_False",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "batch__c",
+								"value": {
+									"value": "@variables('temp_batch__c')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Set_batch__c_True",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "batch__c",
+								"value": {
+									"value": "@coalesce(null, null, null)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"url": {
+				"type": "string"
+			},
+			"password": {
+				"type": "string"
+			},
+			"username": {
+				"type": "string"
+			},
+			"val_plant_code": {
+				"type": "string"
+			},
+			"val_email_address": {
+				"type": "string"
+			},
+			"val_material": {
+				"type": "string"
+			},
+			"val_batch": {
+				"type": "string"
+			},
+			"val_source_filename": {
+				"type": "string"
+			},
+			"val_sessionId": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"val_organization__c": {
+				"type": "String"
+			},
+			"temp_api_name__v": {
+				"type": "String"
+			},
+			"val_api_name__v": {
+				"type": "String"
+			},
+			"val_responseStatus": {
+				"type": "String"
+			},
+			"temp_val_organization__c": {
+				"type": "String"
+			},
+			"id": {
+				"type": "String"
+			},
+			"state__v": {
+				"type": "String"
+			},
+			"name__v": {
+				"type": "String"
+			},
+			"severity__qdm": {
+				"type": "String"
+			},
+			"final_criticality__c": {
+				"type": "String"
+			},
+			"final_severity__c": {
+				"type": "String"
+			},
+			"initial_criticality__c": {
+				"type": "String"
+			},
+			"val_temp": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"temp_batch__c": {
+				"type": "String"
+			},
+			"batch__c": {
+				"type": "String"
+			},
+			"batch_quality_event__cr": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "AUTOUD"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

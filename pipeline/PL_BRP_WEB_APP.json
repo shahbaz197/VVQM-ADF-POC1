@@ -1,0 +1,782 @@
+{
+	"name": "PL_BRP_WEB_APP",
+	"properties": {
+		"description": "BRP_WEB_APP",
+		"activities": [
+			{
+				"name": "Web_Login",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.url}/api/v19.3/auth?username=@{pipeline().parameters.username}&password=@{pipeline().parameters.password}",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"username": "@{pipeline().parameters.username}",
+						"password=": "@{pipeline().parameters.password}"
+					}
+				}
+			},
+			{
+				"name": "Set_SessionId",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web_Login",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "val_sessionId",
+					"value": {
+						"value": "@activity('Web_Login').output.sessionId",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set_ValutId",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web_Login",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "val_vaultId",
+					"value": {
+						"value": "@{activity('Web_Login').output.vaultId}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Web_organization__c",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set_SessionId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set_ValutId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.url}/api/v19.3/query?q=select id from qms_organization__qdm where orgid__c='@{pipeline().parameters.val_plant_code}'",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "@variables('val_sessionId')",
+							"type": "Expression"
+						},
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"body": {
+						"username": "@{pipeline().parameters.username}",
+						"password=": "@{pipeline().parameters.password}"
+					}
+				}
+			},
+			{
+				"name": "Web_package_class__c",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set_ValutId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set_SessionId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.url}/api/v19.3/query?q=select id from package_class__c where name__v='@{pipeline().parameters.val_name}'",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "@variables('val_sessionId')",
+							"type": "Expression"
+						},
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"body": {
+						"username": "@{pipeline().parameters.username}",
+						"password=": "@{pipeline().parameters.password}"
+					}
+				}
+			},
+			{
+				"name": "ForEach_package_class__c",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Web_package_class__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Web_package_class__c').output.data",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set_package_class__c",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "temp_val_package_class__c",
+								"value": {
+									"value": "@item().id",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ForEach_organization__c",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Web_organization__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Web_organization__c').output.data",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set_organization__c",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "temp_val_organization__c",
+								"value": {
+									"value": "@item().id",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Web_final_post",
+				"description": "Web_final_post",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "IfCondition_package_class__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "IfCondition_organization__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.url}/api/v19.3/vobjects/package_class_instance__c",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Authorization": {
+							"value": "@variables('val_sessionId')",
+							"type": "Expression"
+						},
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "[{\n\"name__v\":\"@{concat(pipeline().parameters.val_name,'_',pipeline().parameters.val_process_order_number__c,'_',pipeline().parameters.val_batch_number__c,'_',pipeline().TriggerTime)}\",\n\"package_class__c\":\"@{variables('val_package_class__c')}\",\n\"organization__c\":\"@{variables('val_organization__c')}\",\n\"batch_number__c\":\"@{pipeline().parameters.val_batch_number__c}\",\n\"material_id__c\":\"@{pipeline().parameters.val_material_id__c}\",\n\"process_order_number__c\":\"@{pipeline().parameters.val_process_order_number__c}\",\n\"production_version__c\":\"@{pipeline().parameters.val_production_version__c}\"\n}]\n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "IfCondition_package_class__c",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach_package_class__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('temp_val_package_class__c'),'')\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set_package_class__c_False",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_package_class__c",
+								"value": {
+									"value": "@variables('temp_val_package_class__c')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Set_package_class__c_True",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_package_class__c",
+								"value": {
+									"value": "@coalesce(null, null, null)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ForEach_Status",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Set_ResponseStatus",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Web_final_post').output.data",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set_data_responseStatus",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_data_responseStatus",
+								"value": {
+									"value": "@item().responseStatus",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set_ResponseStatus",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web_final_post",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "val_responseStatus",
+					"value": {
+						"value": "@activity('Web_final_post').output.responseStatus",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set_response_desc",
+				"description": "a",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "ForEach_Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "val_response_desc",
+					"value": {
+						"value": "@string(activity('Web_final_post').output.data)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "IfCondition_organization__c",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach_organization__c",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('temp_val_organization__c'),'')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set_val_organization__c_false",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_organization__c",
+								"value": {
+									"value": "@variables('temp_val_organization__c')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Set_val_organization__c_true",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "val_organization__c",
+								"value": {
+									"value": "@coalesce(null, null, null)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Stored_Procedure logs",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Set_response_desc",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[VVQM].[bpr_session_details_proc]",
+					"storedProcedureParameters": {
+						"batch_number__c": {
+							"value": {
+								"value": "@pipeline().parameters.val_batch_number__c",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"data_response_desc": {
+							"value": {
+								"value": "@variables('val_response_desc')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"data_response_status": {
+							"value": {
+								"value": "@variables('val_data_responseStatus')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"load_txn_tm": {
+							"value": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"material_id__c": {
+							"value": {
+								"value": "@pipeline().parameters.val_material_id__c",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"name": {
+							"value": {
+								"value": "@pipeline().parameters.val_name",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"organization__c": {
+							"value": {
+								"value": "@variables('val_organization__c')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"package_class__c": {
+							"value": {
+								"value": "@variables('val_package_class__c')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"pipeline_name": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"pipeline_runid": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"plant_code": {
+							"value": {
+								"value": "@pipeline().parameters.val_plant_code",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"process_order_number__c": {
+							"value": {
+								"value": "@pipeline().parameters.val_process_order_number__c",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"production_version__c": {
+							"value": {
+								"value": "@pipeline().parameters.val_production_version__c",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"response_status": {
+							"value": {
+								"value": "@variables('val_responseStatus')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"sessionId": {
+							"value": {
+								"value": "@variables('val_sessionId')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"url": {
+							"value": {
+								"value": "@pipeline().parameters.url",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"vaultId": {
+							"value": {
+								"value": "@variables('val_vaultId')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"source_name": {
+							"value": "bpr",
+							"type": "String"
+						},
+						"source_filename": {
+							"value": {
+								"value": "@pipeline().parameters.val_filename",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_VVQM",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Web_Failure_Login_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Web_Login",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-06.eastus.logic.azure.com:443/workflows/20b2d83527654311b8ff6ebb659a9563/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=I6ZUHfsOjhzZY1J0Umk8UAKuoboQfKoEQ-LBIRyJqAg",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.var_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"Login Failed for @{pipeline().parameters.username}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Web_Final_Failure_Login_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Web_final_post",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-06.eastus.logic.azure.com:443/workflows/20b2d83527654311b8ff6ebb659a9563/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=I6ZUHfsOjhzZY1J0Umk8UAKuoboQfKoEQ-LBIRyJqAg",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.var_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"Final Post Failed for @{pipeline().parameters.username}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Web_ResponseCheck_Notification",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Stored_Procedure logs",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://prod-06.eastus.logic.azure.com:443/workflows/20b2d83527654311b8ff6ebb659a9563/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=I6ZUHfsOjhzZY1J0Umk8UAKuoboQfKoEQ-LBIRyJqAg",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n \"DataFactoryName\":\"@{pipeline().DataFactory}\",\n \"EmailTo\":\"@{pipeline().parameters.var_email_address}\",\n \"PipelineName\":\"@{pipeline().Pipeline}\",\n \"PipelineRunId\":\"@{pipeline().RunId}\",\n \"PipelineTime\":\"@{pipeline().TriggerTime}\",\n \"Subject\":\"Pipeline Failed: @{pipeline().Pipeline}\",\n \"ErrorMessage\":\"Stored Procedure Failed in @{pipeline().parameters.username}\"\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"url": {
+				"type": "string"
+			},
+			"password": {
+				"type": "string"
+			},
+			"username": {
+				"type": "string"
+			},
+			"val_plant_code": {
+				"type": "string"
+			},
+			"val_name": {
+				"type": "string"
+			},
+			"val_batch_number__c": {
+				"type": "string"
+			},
+			"val_material_id__c": {
+				"type": "string"
+			},
+			"val_process_order_number__c": {
+				"type": "string"
+			},
+			"val_production_version__c": {
+				"type": "string"
+			},
+			"var_email_address": {
+				"type": "string"
+			},
+			"val_filename": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"val_sessionId": {
+				"type": "String"
+			},
+			"val_vaultId": {
+				"type": "String"
+			},
+			"val_organization__c": {
+				"type": "String"
+			},
+			"temp_val_package_class__c": {
+				"type": "String"
+			},
+			"val_package_class__c": {
+				"type": "String"
+			},
+			"val_data_responseStatus": {
+				"type": "String"
+			},
+			"val_responseStatus": {
+				"type": "String"
+			},
+			"val_response_desc": {
+				"type": "String"
+			},
+			"temp_val_organization__c": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "BPR"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,20 @@
+{
+	"name": "LS_ADLS_VVQM",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "AzurE Data Storage",
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://bqaze1imqdl01.dfs.core.windows.net/",
+			"accountKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_KV_VVQM",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "Elanco-MQ-NonProd-VVQM-Secret"
+			}
+		}
+	}
+}

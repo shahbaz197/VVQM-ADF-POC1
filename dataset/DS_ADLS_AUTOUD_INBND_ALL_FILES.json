@@ -1,0 +1,26 @@
+{
+	"name": "DS_ADLS_AUTOUD_INBND_ALL_FILES",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_VVQM",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "AUTOUD"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "Auto-UD Inbound/Raw/sftp_autoud_raw",
+				"fileSystem": "mq-veevaqualitymanagement"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

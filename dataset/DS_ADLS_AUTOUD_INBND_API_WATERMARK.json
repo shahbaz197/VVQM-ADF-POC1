@@ -1,0 +1,24 @@
+{
+	"name": "DS_ADLS_AUTOUD_INBND_API_WATERMARK",
+	"properties": {
+		"description": "BPR Incremental Cleansed Table ",
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_VVQM",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "AUTOUD"
+		},
+		"annotations": [],
+		"type": "Orc",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "Auto-UD Inbound/Control_Metadata/autoud_inbnd_api_watermark",
+				"fileSystem": "mq-veevaqualitymanagement"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
