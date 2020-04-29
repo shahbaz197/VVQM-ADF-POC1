@@ -1,7 +1,7 @@
 {
 	"name": "PL_AUTOUD_INBND_EXECUTE_DATALOAD",
 	"properties": {
-		"description": "PL_AUTOUD_INBND_EXECUTE_DATALOAD....",
+		"description": "PL_AUTOUD_INBND_EXECUTE_DATALOAD.......",
 		"activities": [
 			{
 				"name": "insert_inprogress_status",
