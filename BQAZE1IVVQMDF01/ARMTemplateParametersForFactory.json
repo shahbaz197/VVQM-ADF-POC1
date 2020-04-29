@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "BQAZE1IVVQMDF01"
+		},
+		"LS_ADB_VVQM_accessToken": {
+			"value": ""
+		},
+		"LS_ADLS_VVQM_properties_typeProperties_url": {
+			"value": "https://bqaze1imqdl01.dfs.core.windows.net/"
+		},
+		"LS_KV_VVQM_properties_typeProperties_baseUrl": {
+			"value": "https://bqaze1ivvqmkv01.vault.azure.net/"
+		},
+		"LS_SFTP_AUTOUD_LILLY_CONN_properties_typeProperties_host": {
+			"value": "sfttest.lilly.com"
+		},
+		"LS_SFTP_AUTOUD_LILLY_CONN_properties_typeProperties_userName": {
+			"value": "xfer0077"
+		},
+		"LS_SFTP_BPR_LILLY_CONN_properties_typeProperties_host": {
+			"value": "sfttest.lilly.com"
+		},
+		"LS_SFTP_BPR_LILLY_CONN_properties_typeProperties_userName": {
+			"value": "xfer0112"
+		},
+		"LS_SQL_VVQM_properties_typeProperties_connectionString_secretName": {
+			"value": "KEY-SQL-MQDW"
+		},
+		"TRG_PL_MASTER_AUTOUD_ID_OUT_1hrRc_properties_PL_MASTER_AUTOUD_ID_OUT_RAW2WEB_RUN_parameters_var_email_address": {
+			"value": "sneh.gaur@elanco.com"
+		},
+		"TRG_PL_MASTER_BPR_061218_properties_PL_MASTER_BPR_RAW2WEB_RUN_parameters_var_email_address": {
+			"value": "sneh.gaur@elanco.com"
+		}
+	}
+}
